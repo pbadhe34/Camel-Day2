@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+ 
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:camel="http://camel.apache.org/schema/spring"
+       xsi:schemaLocation="
+         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+         http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+         http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
+
+    
+    <bean id="orderProcessor" class="org.app.OrderProcessor"/>
+     
+
+    <camel:camelContext id="order">
+
+         
+        <camel:dataFormats>
+            <camel:json id="jsondf" library="Jackson" unmarshalTypeName="org.app.Order"/>
+        </camel:dataFormats>
+         
+       
+        <camel:transformers>
+            <!-- specifying from&to data type for the Java-CSV transformation -->
+            <camel:dataFormatTransformer fromType="java:org.app.Order" toType="csv:CSVOrder">
+                <camel:bindy id="csvdf" type="Csv" classType="org.app.Order"/>
+            </camel:dataFormatTransformer>
+            <!-- instead of exact from&to type, scheme name can be specified to apply for all the Java-XML transformation -->
+            <camel:dataFormatTransformer scheme="xml">
+                <camel:jaxb id="xmldf" contextPath="org.app"/>
+            </camel:dataFormatTransformer>
+            <!--  for all the Java-JSON transformation, referring to already defined DataFormat -->
+            <camel:dataFormatTransformer ref="jsondf" scheme="json"/>
+        </camel:transformers>
+         
+        <camel:validators>
+            <camel:endpointValidator type="xml" uri="validator:xsd/schema.xsd"/>
+            <camel:predicateValidator type="json">
+                <camel:simple>${body} contains 'orderId' &amp;&amp; ${body} !contains 'accepted'</camel:simple>
+            </camel:predicateValidator>
+            <camel:customValidator type="java:org.app.OrderResponse"
+            className="org.app.OrderResponseValidator"/>
+        </camel:validators>
+         
+
+         
+        <camel:route id="xml">
+            <camel:from uri="direct:xml"/>
+            <!--  This route expects XML as an input/output type -->
+            <camel:inputType urn="xml:XMLOrder" validate="true"/>
+            <camel:outputType urn="xml:XMLOrderResponse" validate="true"/>
+            <camel:to uri="direct:java"/>
+        </camel:route>
+        
+        <camel:route id="json">
+            <camel:from uri="direct:json"/>
+            <!--  This route expects JSON as an input/output type -->
+            <!--  Only scheme 'json' is specified for the type, which means it handles arbitrary JSON content -->
+            <camel:inputType urn="json" validate="true"/>
+            <camel:outputType urn="json"/>
+            <camel:to uri="direct:java"/>
+        </camel:route>
+       
+        <camel:route id="java">
+            <camel:from uri="direct:java"/>
+            <!-- This route expects Java object as an input/output type. -->
+            <!--  If the request comes from xml route, the XML-Java transformer is applied. -->
+            <!--  If it comes from json route, the JSON-Java transformer is applied. -->
+            <!--  If it's sent via ProducerTemplate directly without specifying input/output type, no transformer is applied. -->
+            <camel:inputType urn="java:org.app.Order"/>
+            <camel:outputType urn="java:org.app.OrderResponse" validate="true"/>
+            <camel:wireTap uri="direct:csv"/>
+            <camel:process ref="orderProcessor"/>
+        </camel:route>
+         
+        <camel:route id="csv">
+            <camel:from uri="direct:csv"/>
+            <!-- This route expects CSV as an input type, therefore Java-CSV transformation is triggered -->
+            <camel:inputType urn="csv:CSVOrder"/>
+            <camel:to uri="file:target/output?fileExist=Append&amp;fileName=orders.csv"/>
+        </camel:route>
+         
+    </camel:camelContext>
+
+</beans>

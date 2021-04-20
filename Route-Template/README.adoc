@@ -1,0 +1,23 @@
+== Camel Route Template Example
+
+This examples shows how to use Route Templates (parameterized routes) to specify a skeleton route
+which can be used for creating and adding new routes via parameters.
+
+The route template is defined via Java or XML DSL (RouteBuilder) in the `MyRouteTemplates.java` source file.
+
+The `application.properties` is used to create two routes from the template using different set of parameters.
+
+An alternative to create routes is from Java which is done in the `MyTemplateBuilder.java` class.
+See the `MyApplication.java` where you can change the source to use java instead of property file for the template parameters.
+
+The example runs standalone via Camel Main in the `MyApplication.java` source file.
+
+=== How to run
+
+ Run this  with
+
+----
+$ mvn camel:run
+----
+
+ 

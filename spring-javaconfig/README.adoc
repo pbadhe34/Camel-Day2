@@ -1,0 +1,29 @@
+== Spring Java Config Example
+
+=== Introduction
+
+This example shows how to work with files and JMS, using Spring Java
+Config to boot up Camel and configure the routes.
+
+The example consumes messages from a queue and writes them to the file
+system.
+
+=== Build
+
+You will need to compile this example first:
+
+----
+$ mvn compile
+----
+
+=== Run
+
+To run the example type
+
+----
+$ mvn exec:java
+----
+
+To stop the example hit ctrl+c
+
+ 
